@@ -278,7 +278,11 @@
 
         async function loadMenu() {
             try {
-                const response = await fetch(csvUrl);
+                // إضافة متغير لمنع كاش جوجل وجلب البيانات لحظياً في نفس الثانية
+                const cacheBuster = `&t=${new Date().getTime()}`;
+                const finalUrl = csvUrl + cacheBuster;
+
+                const response = await fetch(finalUrl);
                 const data = await response.text();
                 const rows = data.split('\n').slice(1);
                 
