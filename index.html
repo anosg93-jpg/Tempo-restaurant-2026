@@ -313,10 +313,32 @@
             document.getElementById('themeBtn').innerText = document.body.classList.contains('dark-mode') ? '☀️' : '🌙';
         }
 
+        // دالة محسنة لتحميل الصور مسبقاً مع إرجاع Promise يكتمل فور تحميل كافة الصور بنجاح
         function preloadImages(data) {
-            data.forEach(item => { const img = new Image(); img.src = item.img; });
+            const promises = [];
+            
+            // إضافة صور الأصناف
+            data.forEach(item => {
+                promises.push(new Promise((resolve) => {
+                    const img = new Image();
+                    img.onload = resolve;
+                    img.onerror = resolve;
+                    img.src = item.img;
+                }));
+            });
+
+            // إضافة صور الأقسام
             const cats = [...new Set(data.map(i => i.category))];
-            cats.forEach(c => { const img = new Image(); img.src = `${IMAGES_PATH}${c}.jpg`; });
+            cats.forEach(c => {
+                promises.push(new Promise((resolve) => {
+                    const img = new Image();
+                    img.onload = resolve;
+                    img.onerror = resolve;
+                    img.src = `${IMAGES_PATH}${c}.jpg`;
+                }));
+            });
+
+            return Promise.all(promises);
         }
 
         // دالة الـ Counter الإبداعية بالتزامن المباشر والسرعة الثابتة
@@ -362,7 +384,9 @@
                     };
                 }).filter(i => i.name);
                 
-                preloadImages(menuData);
+                // ننتظر تحميل كافة الصور بالكامل أولاً قبل استكمال فتح التطبيق
+                await preloadImages(menuData);
+                
                 renderNav();
                 setTimeout(() => {
                     document.getElementById('splash-screen').classList.add('splash-hidden');
@@ -388,7 +412,7 @@
                 let defaultSize = item.priceS ? 'S' : item.priceM ? 'M' : item.priceL ? 'L' : item.priceXL ? 'XL' : '';
                 let defaultPrice = item.priceS || item.priceM || item.priceL || item.priceXL || '0';
                 return `
-                <div class="food-card" data-size="${defaultSize}" data-price="${defaultPrice}">
+                <div class="food-card" data-category="${item.category}" data-size="${defaultSize}" data-price="${defaultPrice}">
                     <div class="item-img-box"><img src="${item.img}" onerror="this.src='${IMAGES_PATH}default.jpg'"></div>
                     <div class="food-info">
                         <div style="display: flex; justify-content: space-between; align-items: flex-start; width: 100%;">
@@ -417,8 +441,8 @@
         }
 
         function addToCart(e, btn, name, img) {
-            const card = btn.closest('.food-card'); const size = card.dataset.size; const price = card.dataset.price;
-            let finalName = size ? `${name} (${size})` : name; cart.push({name: finalName, price: price, img: img});
+            const card = btn.closest('.food-card'); const size = card.dataset.size; const price = card.dataset.price; const category = card.dataset.category || '';
+            let finalName = size ? `${name} (${size})` : name; cart.push({name: finalName, price: price, img: img, category: category});
             btn.innerText = 'تم الطلب'; btn.classList.add('added');
             setTimeout(() => { btn.innerText = 'اطلب'; btn.classList.remove('added'); }, 2000);
             const fly = document.createElement('div'); fly.className = 'fly-item'; fly.innerHTML = '🍕'; fly.style.left = e.clientX + 'px'; fly.style.top = e.clientY + 'px'; document.body.appendChild(fly);
@@ -469,27 +493,26 @@
                 return alert("يرجى إدخال عنوان التوصيل بالتفصيل");
             }
 
-            const typeLabel = selectedOrderType === 'delivery' ? '🛵 توصيل (دليفري)' : '🛍️ استلام من الفرع (تيك اواي)';
+            const typeLabel = selectedOrderType === 'delivery' ? 'دليفري' : 'تيك اواي';
             
-            // صياغة الرسالة الفاخرة والمنظمة بشكل تسويقي جذاب ومترابط
-            let msg = `✨ *الطلب الفاخر من مطعم تيمبو* ✨\n`;
-            msg += `_طعم يأخذك في رحلة فريدة من نوعها!_ \n\n`;
+            // صياغة الرسالة - مبسطة، مرتبة جداً، منسقة ومباشرة
+            let msg = `✨ *طلب جديد من مطعم تيمبو* ✨\n\n`;
             
-            msg += `👤 *العميل العزيز:* ${n}\n`;
-            msg += `📱 *رقم الجوال:* ${p}\n`;
-            msg += `🍴 *طريقة الاستلام:* ${typeLabel}\n`;
+            msg += `👤 *الاسم:* ${n}\n`;
+            msg += `📱 *الهاتف:* ${p}\n`;
+            msg += `🛵 *نوع الطلب:* ${typeLabel}\n`;
             
             if (selectedOrderType === 'delivery') {
-                msg += `📍 *عنوان التوصيل:* ${a}\n`;
+                msg += `📍 *العنوان:* ${a}\n`;
             }
             
-            msg += `\n📦 *تفاصيل أصناف طلبك:* \n`;
-            msg += `=========================\n`;
-            msg += cart.map((i, index) => `${index + 1}. ◽ ${i.name}\n   💸 السعر: ${i.price} ج.م`).join('\n\n') + `\n`;
-            msg += `=========================\n\n`;
+            msg += `\n*الطلبات:* \n`;
+            msg += `-------------------------\n`;
+            msg += cart.map((i, index) => `${index + 1}. ${i.name} [من قسم: ${i.category}] - (${i.price} ج.م)`).join('\n') + `\n`;
+            msg += `-------------------------\n\n`;
             
-            msg += `💰 *الإجمالي المطلوب:* *${currentTotal} ج.م*\n\n`;
-            msg += `✨ *شكراً لاختيارك تيمبو! تم تحضير طلبك بكل حب وشغف لنضمن لك تجربة تذوق استثنائية تفوق توقعاتك. ونحن دائماً في انتظار خدمتك.* ✨`;
+            msg += `💰 *الإجمالي النهائي:* *${currentTotal} ج.م*\n\n`;
+            msg += `نأمل أن تنال خدمتنا رضاكم دائماً. ✨`;
 
             window.open(`https://wa.me/201550641143?text=${encodeURIComponent(msg)}`);
         }
