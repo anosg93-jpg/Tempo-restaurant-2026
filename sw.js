@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tempo-restaurant-v2'; // عند تغيير الرقم هنا مستقبلاً يمسح الكاش القديم تلقائياً
+const CACHE_NAME = 'tempo-restaurant-v3'; // عند تغيير الرقم هنا مستقبلاً يمسح الكاش القديم تلقائياً
 const ASSETS_TO_CACHE = [
   'index.html',
   'manifest.json',

@@ -175,7 +175,14 @@
         .cart-item-name { font-weight: 700; font-size: 0.9rem; color: var(--main-text); }
         .cart-item-price { color: var(--yellow-gold); font-weight: 800; font-size: 0.85rem; display: block; }
         .remove-btn { color: #ff3b30; font-weight: 800; font-size: 0.75rem; cursor: pointer; }
+
+        /* تصميم كرتوني إبداعي لخيارات الاستلام */
+        .order-type-container { display: flex; background: rgba(0,0,0,0.04); padding: 6px; border-radius: 16px; margin: 15px 0; gap: 6px; }
+        .order-type-btn { flex: 1; border: none; background: transparent; padding: 12px; border-radius: 12px; font-weight: 800; font-size: 0.9rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; color: var(--desc-text); transition: all 0.3s ease; }
+        .order-type-btn.active { background: var(--accent); color: white; box-shadow: 0 4px 12px rgba(46, 125, 50, 0.2); }
+
         .user-fields input { background: var(--bg); border: none; padding: 16px; border-radius: 14px; width: 100%; margin-bottom: 10px; color: var(--main-text); text-align: right; }
+        #uAddr { transition: all 0.3s ease; }
         .submit-btn { background: var(--accent); color: white; border: none; padding: 18px; border-radius: 18px; width: 100%; font-weight: 800; cursor: pointer; }
     </style>
 </head>
@@ -273,6 +280,17 @@
                 <b>المجموع</b>
                 <b id="totalAmount">0 ج.م</b>
             </div>
+
+            <!-- أزرار اختيار نوع الطلب الكريتيف -->
+            <div class="order-type-container">
+                <button type="button" class="order-type-btn active" id="deliveryBtn" onclick="setOrderType('delivery')">
+                    🛵 دليفري
+                </button>
+                <button type="button" class="order-type-btn" id="takeawayBtn" onclick="setOrderType('takeaway')">
+                    🛍️ تيك اواي
+                </button>
+            </div>
+
             <div class="user-fields">
                 <input type="text" id="uName" placeholder="الاسم بالكامل">
                 <input type="tel" id="uPhone" placeholder="رقم الموبايل">
@@ -288,6 +306,7 @@
         let menuData = [], cart = [];
         let currentTotal = 0; 
         let deferredPrompt;
+        let selectedOrderType = 'delivery'; // نوع الطلب الافتراضي
 
         function toggleTheme() {
             document.body.classList.toggle('dark-mode');
@@ -421,10 +440,57 @@
         function toggleCart(s) { const modal = document.getElementById('cartModal'); if (s) { modal.style.display = 'flex'; history.pushState({ cartOpen: true }, ""); } else { modal.style.display = 'none'; } }
         window.addEventListener('popstate', function (event) { const modal = document.getElementById('cartModal'); if (modal.style.display === 'flex') { modal.style.display = 'none'; } });
 
+        // دالة تبديل نوع الطلب (تيك أواي / دليفري) والتحكم في حقل العنوان
+        function setOrderType(type) {
+            selectedOrderType = type;
+            const deliveryBtn = document.getElementById('deliveryBtn');
+            const takeawayBtn = document.getElementById('takeawayBtn');
+            const addrInput = document.getElementById('uAddr');
+
+            if (type === 'delivery') {
+                deliveryBtn.classList.add('active');
+                takeawayBtn.classList.remove('active');
+                addrInput.style.display = 'block';
+            } else {
+                takeawayBtn.classList.add('active');
+                deliveryBtn.classList.remove('active');
+                addrInput.style.display = 'none';
+            }
+        }
+
         function sendToWA() {
             const n = document.getElementById('uName').value, p = document.getElementById('uPhone').value, a = document.getElementById('uAddr').value;
-            if(!n || !p || !a || cart.length === 0) return alert("يرجى إكمال البيانات واختيار الأصناف");
-            let msg = `طلب جديد - مطعم تيمبو\n\n👤 الاسم: ${n}\n📱 الموبايل: ${p}\n📍 العنوان: ${a}\n\nالطلبات:\n` + cart.map(i => `- ${i.name} (${i.price} ج.م)`).join('\n') + `\n\n💰 الإجمالي: ${currentTotal} ج.م`;
+            
+            // التحقق من الحقول المطلوبة بناءً على نوع الطلب
+            if (!n || !p || cart.length === 0) {
+                return alert("يرجى إكمال البيانات واختيار الأصناف");
+            }
+            if (selectedOrderType === 'delivery' && !a) {
+                return alert("يرجى إدخال عنوان التوصيل بالتفصيل");
+            }
+
+            const typeLabel = selectedOrderType === 'delivery' ? '🛵 توصيل (دليفري)' : '🛍️ استلام من الفرع (تيك اواي)';
+            
+            // صياغة الرسالة الفاخرة والمنظمة بشكل تسويقي جذاب ومترابط
+            let msg = `✨ *الطلب الفاخر من مطعم تيمبو* ✨\n`;
+            msg += `_طعم يأخذك في رحلة فريدة من نوعها!_ \n\n`;
+            
+            msg += `👤 *العميل العزيز:* ${n}\n`;
+            msg += `📱 *رقم الجوال:* ${p}\n`;
+            msg += `🍴 *طريقة الاستلام:* ${typeLabel}\n`;
+            
+            if (selectedOrderType === 'delivery') {
+                msg += `📍 *عنوان التوصيل:* ${a}\n`;
+            }
+            
+            msg += `\n📦 *تفاصيل أصناف طلبك:* \n`;
+            msg += `=========================\n`;
+            msg += cart.map((i, index) => `${index + 1}. ◽ ${i.name}\n   💸 السعر: ${i.price} ج.م`).join('\n\n') + `\n`;
+            msg += `=========================\n\n`;
+            
+            msg += `💰 *الإجمالي المطلوب:* *${currentTotal} ج.م*\n\n`;
+            msg += `✨ *شكراً لاختيارك تيمبو! تم تحضير طلبك بكل حب وشغف لنضمن لك تجربة تذوق استثنائية تفوق توقعاتك. ونحن دائماً في انتظار خدمتك.* ✨`;
+
             window.open(`https://wa.me/201550641143?text=${encodeURIComponent(msg)}`);
         }
 
