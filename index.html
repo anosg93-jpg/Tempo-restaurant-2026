@@ -56,7 +56,7 @@
         .loader-text { font-weight: 800; color: var(--accent); font-size: 2rem; margin-bottom: 8px; }
         .loader-slogan { font-size: 1.1rem; color: var(--desc-text); font-weight: 600; font-style: italic; }
         .loading-bar { width: 180px; height: 6px; background: rgba(0,0,0,0.05); margin: 25px auto 10px auto; border-radius: 10px; overflow: hidden; position: relative; }
-        .loading-bar span { display: block; width: 0; height: 100%; background: var(--yellow-gold); animation: progress 2.5s linear forwards; }
+        .loading-bar span { display: block; width: 0; height: 100%; background: var(--yellow-gold); animation: progress 4s linear forwards; }
         
         /* تأثير النسبة الكريتيف المتغيرة */
         .creative-counter {
@@ -213,13 +213,14 @@
             </div>
         </div>
         <div class="header-bottom-addr">
-            <div class="branch-header-line">
-                <span class="addr-tag">📍 فرع دمياط:</span>
-                <span>ميدان سرور اخر شارع مدرسة تامياتس</span>
-            </div>
+            <!-- تم تعديل الترتيب ليصبح كفر البطيخ أولاً -->
             <div class="branch-header-line">
                 <span class="addr-tag">📍 فرع كفر البطيخ:</span>
                 <span>شارع الحدادين مقابل فرن الجوجرى</span>
+            </div>
+            <div class="branch-header-line">
+                <span class="addr-tag">📍 فرع دمياط:</span>
+                <span>ميدان سرور اخر شارع مدرسة تامياتس</span>
             </div>
         </div>
     </header>
@@ -244,15 +245,16 @@
 
     <footer class="restaurant-footer">
         <div class="footer-branches-container">
-            <div class="footer-branch-item">
-                <div class="footer-branch-title">📌 فرع دمياط</div>
-                <p class="footer-branch-addr">ميدان سرور اخر شارع مدرسة تامياتس بجوار صيدليه القدس</p>
-                <a href="tel:01515124150" class="footer-phone-call">📞 اتصل بالفرع: 01515124150</a>
-            </div>
+            <!-- تم تعديل الترتيب ليصبح كفر البطيخ أولاً -->
             <div class="footer-branch-item">
                 <div class="footer-branch-title">📌 فرع كفر البطيخ</div>
                 <p class="footer-branch-addr">شارع الحدادين مقابل فرن الجوجرى</p>
                 <a href="tel:01550641143" class="footer-phone-call">📞 اتصل بالفرع: 01550641143</a>
+            </div>
+            <div class="footer-branch-item">
+                <div class="footer-branch-title">📌 فرع دمياط</div>
+                <p class="footer-branch-addr">ميدان سرور اخر شارع مدرسة تامياتس بجوار صيدليه القدس</p>
+                <a href="tel:01515124150" class="footer-phone-call">📞 اتصل بالفرع: 01515124150</a>
             </div>
         </div>
 
@@ -313,7 +315,7 @@
             document.getElementById('themeBtn').innerText = document.body.classList.contains('dark-mode') ? '☀️' : '🌙';
         }
 
-        // دالة محسنة لتحميل الصور مسبقاً مع إرجاع Promise يكتمل فور تحميل كافة الصور بنجاح
+        // دالة تحميل الصور مسبقاً في الخلفية
         function preloadImages(data) {
             const promises = [];
             
@@ -341,11 +343,11 @@
             return Promise.all(promises);
         }
 
-        // دالة الـ Counter الإبداعية بالتزامن المباشر والسرعة الثابتة
+        // دالة الـ Counter الإبداعية لتعمل متزامنة تماماً مع مدة الأربع ثوانٍ الثابتة
         function startCreativeCounter() {
             const counterEl = document.getElementById('loadPercentage');
             let count = 0;
-            const duration = 2400; // متناسقة تماماً مع الـ 2.5s الخاصة بالأنيميشن
+            const duration = 3800; // متناسقة ومضبوطة مع زمن الـ 4 ثوانٍ
             const intervalTime = duration / 100;
 
             const timer = setInterval(() => {
@@ -384,15 +386,23 @@
                     };
                 }).filter(i => i.name);
                 
-                // ننتظر تحميل كافة الصور بالكامل أولاً قبل استكمال فتح التطبيق
-                await preloadImages(menuData);
+                // تحميل الصور يبدأ في الخلفية فوراً دون منع فتح التطبيق
+                preloadImages(menuData);
                 
                 renderNav();
+
+                // زمن تحميل ثابت وحتمي (4 ثوانٍ = 4000 مللي ثانية) كما طلبت تماماً
                 setTimeout(() => {
                     document.getElementById('splash-screen').classList.add('splash-hidden');
                     initPWA(); 
-                }, 2500);
-            } catch (e) { document.getElementById('splash-screen').classList.add('splash-hidden'); }
+                }, 4000);
+
+            } catch (e) { 
+                // في حالة وجود خطأ، نفتح التطبيق بعد 4 ثوانٍ أيضاً لضمان استقرار التجربة
+                setTimeout(() => {
+                    document.getElementById('splash-screen').classList.add('splash-hidden');
+                }, 4000);
+            }
         }
 
         function renderNav() {
